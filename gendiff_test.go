@@ -118,6 +118,117 @@ func TestGenDiff(t *testing.T) {
 			file2:     filepath.Join("testdata", "fixture", "file2.json"),
 			expectErr: true,
 		},
+		// YAML tests
+		{
+			name:  "YAML flat diff",
+			file1: filepath.Join("testdata", "fixture", "file1.yml"),
+			file2: filepath.Join("testdata", "fixture", "file2.yml"),
+			expected: `{
+  - follow: false
+    host: hexlet.io
+  - proxy: 123.234.53.22
+  - timeout: 50
+  + timeout: 20
+  + verbose: true
+}`,
+		},
+		{
+			name:  "YAML same files",
+			file1: filepath.Join("testdata", "fixture", "same1.yml"),
+			file2: filepath.Join("testdata", "fixture", "same2.yml"),
+			expected: `{
+    host: hexlet.io
+    timeout: 50
+}`,
+		},
+		{
+			name:  "YAML empty files",
+			file1: filepath.Join("testdata", "fixture", "empty1.yml"),
+			file2: filepath.Join("testdata", "fixture", "empty2.yml"),
+			expected: `{
+}`,
+		},
+		{
+			name:  "YAML empty vs filled",
+			file1: filepath.Join("testdata", "fixture", "empty_vs_filled1.yml"),
+			file2: filepath.Join("testdata", "fixture", "empty_vs_filled2.yml"),
+			expected: `{
+  + host: hexlet.io
+  + timeout: 50
+}`,
+		},
+		{
+			name:  "YAML only deleted",
+			file1: filepath.Join("testdata", "fixture", "only_deleted.yml"),
+			file2: filepath.Join("testdata", "fixture", "only_added.yml"),
+			expected: `{
+    host: hexlet.io
+  - proxy: 123.234.53.22
+  - timeout: 50
+}`,
+		},
+		{
+			name:  "YAML only added",
+			file1: filepath.Join("testdata", "fixture", "only_added.yml"),
+			file2: filepath.Join("testdata", "fixture", "only_deleted.yml"),
+			expected: `{
+    host: hexlet.io
+  + proxy: 123.234.53.22
+  + timeout: 50
+}`,
+		},
+		{
+			name:  "YAML different types",
+			file1: filepath.Join("testdata", "fixture", "different_types.yml"),
+			file2: filepath.Join("testdata", "fixture", "different_types2.yml"),
+			expected: `{
+  - boolean: true
+  + boolean: false
+  - float: 3.14
+  + float: 2.71
+  - number: 42
+  + number: 100
+  - string: value
+  + string: different
+}`,
+		},
+		{
+			name:  "YAML completely different",
+			file1: filepath.Join("testdata", "fixture", "completely_different1.yml"),
+			file2: filepath.Join("testdata", "fixture", "completely_different2.yml"),
+			expected: `{
+  - key1: value1
+  - key2: 123
+  + key3: value3
+  + key4: 456
+}`,
+		},
+		{
+			name:  "YAML and JSON mixed",
+			file1: filepath.Join("testdata", "fixture", "file1.yml"),
+			file2: filepath.Join("testdata", "fixture", "file2.json"),
+			expected: `{
+  - follow: false
+    host: hexlet.io
+  - proxy: 123.234.53.22
+  - timeout: 50
+  + timeout: 20
+  + verbose: true
+}`,
+		},
+		{
+			name:  "JSON and YAML mixed",
+			file1: filepath.Join("testdata", "fixture", "file1.json"),
+			file2: filepath.Join("testdata", "fixture", "file2.yml"),
+			expected: `{
+  - follow: false
+    host: hexlet.io
+  - proxy: 123.234.53.22
+  - timeout: 50
+  + timeout: 20
+  + verbose: true
+}`,
+		},
 	}
 
 	for _, tt := range tests {
