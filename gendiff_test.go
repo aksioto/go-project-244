@@ -17,8 +17,8 @@ func TestGenDiff(t *testing.T) {
 	}{
 		{
 			name:  "Flat diff",
-			file1: "testdata/file1.json",
-			file2: "testdata/file2.json",
+			file1: filepath.Join("testdata", "fixture", "file1.json"),
+			file2: filepath.Join("testdata", "fixture", "file2.json"),
 			expected: `{
   - follow: false
     host: hexlet.io
@@ -30,8 +30,8 @@ func TestGenDiff(t *testing.T) {
 		},
 		{
 			name:  "Same files",
-			file1: "testdata/same1.json",
-			file2: "testdata/same2.json",
+			file1: filepath.Join("testdata", "fixture", "same1.json"),
+			file2: filepath.Join("testdata", "fixture", "same2.json"),
 			expected: `{
     host: hexlet.io
     timeout: 50
@@ -39,15 +39,15 @@ func TestGenDiff(t *testing.T) {
 		},
 		{
 			name:  "Empty files",
-			file1: "testdata/empty1.json",
-			file2: "testdata/empty2.json",
+			file1: filepath.Join("testdata", "fixture", "empty1.json"),
+			file2: filepath.Join("testdata", "fixture", "empty2.json"),
 			expected: `{
 }`,
 		},
 		{
 			name:  "Empty vs filled",
-			file1: "testdata/empty_vs_filled1.json",
-			file2: "testdata/empty_vs_filled2.json",
+			file1: filepath.Join("testdata", "fixture", "empty_vs_filled1.json"),
+			file2: filepath.Join("testdata", "fixture", "empty_vs_filled2.json"),
 			expected: `{
   + host: hexlet.io
   + timeout: 50
@@ -55,8 +55,8 @@ func TestGenDiff(t *testing.T) {
 		},
 		{
 			name:  "Only deleted",
-			file1: "testdata/only_deleted.json",
-			file2: "testdata/only_added.json",
+			file1: filepath.Join("testdata", "fixture", "only_deleted.json"),
+			file2: filepath.Join("testdata", "fixture", "only_added.json"),
 			expected: `{
     host: hexlet.io
   - proxy: 123.234.53.22
@@ -65,8 +65,8 @@ func TestGenDiff(t *testing.T) {
 		},
 		{
 			name:  "Only added",
-			file1: "testdata/only_added.json",
-			file2: "testdata/only_deleted.json",
+			file1: filepath.Join("testdata", "fixture", "only_added.json"),
+			file2: filepath.Join("testdata", "fixture", "only_deleted.json"),
 			expected: `{
     host: hexlet.io
   + proxy: 123.234.53.22
@@ -75,8 +75,8 @@ func TestGenDiff(t *testing.T) {
 		},
 		{
 			name:  "Different types",
-			file1: "testdata/different_types.json",
-			file2: "testdata/different_types2.json",
+			file1: filepath.Join("testdata", "fixture", "different_types.json"),
+			file2: filepath.Join("testdata", "fixture", "different_types2.json"),
 			expected: `{
   - boolean: true
   + boolean: false
@@ -91,8 +91,8 @@ func TestGenDiff(t *testing.T) {
 		},
 		{
 			name:  "Completely different",
-			file1: "testdata/completely_different1.json",
-			file2: "testdata/completely_different2.json",
+			file1: filepath.Join("testdata", "fixture", "completely_different1.json"),
+			file2: filepath.Join("testdata", "fixture", "completely_different2.json"),
 			expected: `{
   - key1: value1
   - key2: 123
@@ -102,20 +102,20 @@ func TestGenDiff(t *testing.T) {
 		},
 		{
 			name:      "Nonexistent file",
-			file1:     "testdata/nonexistent.json",
-			file2:     "testdata/file1.json",
+			file1:     filepath.Join("testdata", "fixture", "nonexistent.json"),
+			file2:     filepath.Join("testdata", "fixture", "file1.json"),
 			expectErr: true,
 		},
 		{
 			name:      "Both nonexistent files",
-			file1:     "testdata/nonexistent1.json",
-			file2:     "testdata/nonexistent2.json",
+			file1:     filepath.Join("testdata", "fixture", "nonexistent1.json"),
+			file2:     filepath.Join("testdata", "fixture", "nonexistent2.json"),
 			expectErr: true,
 		},
 		{
 			name:      "Unsupported format",
-			file1:     "testdata/file1.txt",
-			file2:     "testdata/file2.json",
+			file1:     filepath.Join("testdata", "fixture", "file1.txt"),
+			file2:     filepath.Join("testdata", "fixture", "file2.json"),
 			expectErr: true,
 		},
 	}
