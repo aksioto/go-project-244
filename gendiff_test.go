@@ -82,7 +82,7 @@ func TestGenDiff(t *testing.T) {
   + boolean: false
   - float: 3.14
   + float: 2.71
-    null: <nil>
+    null: null
   - number: 42
   + number: 100
   - string: value
@@ -229,6 +229,105 @@ func TestGenDiff(t *testing.T) {
   + verbose: true
 }`,
 		},
+		// Nested structures tests
+		{
+			name:  "Nested JSON structures",
+			file1: filepath.Join("testdata", "fixture", "nested1.json"),
+			file2: filepath.Join("testdata", "fixture", "nested2.json"),
+			expected: `{
+    common: {
+      + follow: false
+        setting1: Value 1
+      - setting2: 200
+      - setting3: true
+      + setting3: null
+      + setting4: blah blah
+      + setting5: {
+            key5: value5
+        }
+        setting6: {
+            doge: {
+              - wow: 
+              + wow: so much
+            }
+            key: value
+          + ops: vops
+        }
+    }
+    group1: {
+      - baz: bas
+      + baz: bars
+        foo: bar
+      - nest: {
+            key: value
+        }
+      + nest: str
+    }
+  - group2: {
+        abc: 12345
+        deep: {
+            id: 45
+        }
+    }
+  + group3: {
+        deep: {
+            id: {
+                number: 45
+            }
+        }
+        fee: 100500
+    }
+}`,
+		},
+		{
+			name:  "Nested YAML structures",
+			file1: filepath.Join("testdata", "fixture", "nested1.yml"),
+			file2: filepath.Join("testdata", "fixture", "nested2.yml"),
+			expected: `{
+    common: {
+      + follow: false
+        setting1: Value 1
+      - setting2: 200
+      - setting3: true
+      + setting3: null
+      + setting4: blah blah
+      + setting5: {
+            key5: value5
+        }
+        setting6: {
+            doge: {
+              - wow: 
+              + wow: so much
+            }
+            key: value
+          + ops: vops
+        }
+    }
+    group1: {
+      - baz: bas
+      + baz: bars
+        foo: bar
+      - nest: {
+            key: value
+        }
+      + nest: str
+    }
+  - group2: {
+        abc: 12345
+        deep: {
+            id: 45
+        }
+    }
+  + group3: {
+        deep: {
+            id: {
+                number: 45
+            }
+        }
+        fee: 100500
+    }
+}`,
+		},
 	}
 
 	for _, tt := range tests {
@@ -238,7 +337,7 @@ func TestGenDiff(t *testing.T) {
 			file1 := filepath.Join(tt.file1)
 			file2 := filepath.Join(tt.file2)
 
-			result, err := GenDiff(file1, file2)
+			result, err := GenDiff(file1, file2, "stylish")
 			if tt.expectErr {
 				require.Error(t, err)
 			} else {

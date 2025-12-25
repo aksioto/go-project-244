@@ -1,11 +1,11 @@
 package code
 
 import (
+	"code/internal/diff"
+	"code/internal/formatter"
 	"code/internal/parser"
-	"fmt"
 	"reflect"
 	"sort"
-	"strings"
 )
 
 var reg *parser.Registry
@@ -16,7 +16,8 @@ func init() {
 	reg.Register(&parser.YAMLParser{}, ".yaml", ".yml")
 }
 
-func GenDiff(path1, path2 string) (string, error) {
+// GenDiff сравнивает два файла и возвращает различия в указанном формате
+func GenDiff(path1, path2, format string) (string, error) {
 	data1, err := reg.ParseFile(path1)
 	if err != nil {
 		return "", err
@@ -27,11 +28,12 @@ func GenDiff(path1, path2 string) (string, error) {
 		return "", err
 	}
 
-	diff := getDiff(data1, data2)
-	return diff, nil
+	nodes := getNodes(data1, data2)
+	fmter := formatter.GetFormatter(format)
+	return fmter.Format(nodes), nil
 }
 
-func getDiff(data1, data2 map[string]interface{}) string {
+func getNodes(data1, data2 map[string]interface{}) []*diff.Node {
 	keysMap := make(map[string]struct{})
 	for k := range data1 {
 		keysMap[k] = struct{}{}
@@ -46,26 +48,56 @@ func getDiff(data1, data2 map[string]interface{}) string {
 	}
 	sort.Strings(keys)
 
-	var sb strings.Builder
-	sb.WriteString("{\n")
+	var nodes []*diff.Node
+	for _, key := range keys {
+		v1, ok1 := data1[key]
+		v2, ok2 := data2[key]
 
-	for _, k := range keys {
-		v1, ok1 := data1[k]
-		v2, ok2 := data2[k]
-
-		switch {
-		case ok1 && !ok2:
-			sb.WriteString(fmt.Sprintf("  - %s: %v\n", k, v1))
-		case !ok1 && ok2:
-			sb.WriteString(fmt.Sprintf("  + %s: %v\n", k, v2))
-		case ok1 && ok2 && !reflect.DeepEqual(v1, v2):
-			sb.WriteString(fmt.Sprintf("  - %s: %v\n", k, v1))
-			sb.WriteString(fmt.Sprintf("  + %s: %v\n", k, v2))
-		default: // одинаковые значения
-			sb.WriteString(fmt.Sprintf("    %s: %v\n", k, v1))
+		node := getNode(key, v1, ok1, v2, ok2)
+		if node != nil {
+			nodes = append(nodes, node)
 		}
 	}
 
-	sb.WriteString("}")
-	return sb.String()
+	return nodes
+}
+
+func getNode(key string, v1 interface{}, ok1 bool, v2 interface{}, ok2 bool) *diff.Node {
+	switch {
+	case ok1 && !ok2:
+		return &diff.Node{
+			Type:  diff.NodeTypeRemoved,
+			Key:   key,
+			Value: v1,
+		}
+	case !ok1 && ok2:
+		return &diff.Node{
+			Type:  diff.NodeTypeAdded,
+			Key:   key,
+			Value: v2,
+		}
+	case ok1 && ok2:
+		m1, isMap1 := v1.(map[string]interface{})
+		m2, isMap2 := v2.(map[string]interface{})
+		if isMap1 && isMap2 {
+			children := getNodes(m1, m2)
+			return &diff.Node{
+				Type:     diff.NodeTypeNested,
+				Key:      key,
+				Children: children,
+			}
+		}
+
+		if !reflect.DeepEqual(v1, v2) {
+			return &diff.Node{
+				Type:     diff.NodeTypeChanged,
+				Key:      key,
+				OldValue: v1,
+				NewValue: v2,
+			}
+		}
+
+		return &diff.Node{Type: diff.NodeTypeUnchanged, Key: key, Value: v1}
+	}
+	return nil
 }

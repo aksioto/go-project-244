@@ -7,6 +7,8 @@ import (
 	"github.com/urfave/cli/v3"
 	"log"
 	"os"
+	"slices"
+	"strings"
 )
 
 func main() {
@@ -30,8 +32,14 @@ func main() {
 
 			filePath1 := args.Get(0)
 			filePath2 := args.Get(1)
+			format := c.String("format")
 
-			res, err := code.GenDiff(filePath1, filePath2)
+			allowedFormats := []string{"stylish"}
+			if !slices.Contains(allowedFormats, format) {
+				return fmt.Errorf("format \"%s\" is not supported\nallowed formats: %s", format, strings.Join(allowedFormats, ", "))
+			}
+
+			res, err := code.GenDiff(filePath1, filePath2, format)
 			if err != nil {
 				return fmt.Errorf("error generating diff: %w", err)
 			}
