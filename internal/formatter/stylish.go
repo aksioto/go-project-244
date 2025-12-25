@@ -41,15 +41,11 @@ func formatNodes(sb *strings.Builder, nodes []*diff.Node, depth int) {
 		case diff.NodeTypeNested:
 			lineIndent := makeIndent(depth, " ")
 
-			sb.WriteString(fmt.Sprintf(
-				"%s%s: {\n",
-				lineIndent,
-				node.Key,
-			))
+			fmt.Fprintf(sb, "%s%s: {\n", lineIndent, node.Key)
 
 			formatNodes(sb, node.Children, depth+1)
 
-			sb.WriteString(fmt.Sprintf("%s}\n", makeIndent(depth, " ")))
+			fmt.Fprintf(sb, "%s}\n", makeIndent(depth, " "))
 		}
 	}
 }
@@ -58,16 +54,16 @@ func formatValue(sb *strings.Builder, depth int, marker string, key string, valu
 	lineIndent := makeIndent(depth, marker)
 
 	if m, ok := value.(map[string]interface{}); ok {
-		sb.WriteString(fmt.Sprintf("%s%s: {\n", lineIndent, key))
+		fmt.Fprintf(sb, "%s%s: {\n", lineIndent, key)
 
 		formatMap(sb, m, depth+1)
 
 		closeIndent := makeIndentForMap(depth)
-		sb.WriteString(fmt.Sprintf("%s}\n", closeIndent))
+		fmt.Fprintf(sb, "%s}\n", closeIndent)
 		return
 	}
 
-	sb.WriteString(fmt.Sprintf("%s%s: %s\n", lineIndent, key, formatSimpleValue(value)))
+	fmt.Fprintf(sb, "%s%s: %s\n", lineIndent, key, formatSimpleValue(value))
 }
 
 func formatMap(sb *strings.Builder, m map[string]interface{}, depth int) {
@@ -83,13 +79,13 @@ func formatMap(sb *strings.Builder, m map[string]interface{}, depth int) {
 		v := m[k]
 
 		if nested, ok := v.(map[string]interface{}); ok {
-			sb.WriteString(fmt.Sprintf("%s%s: {\n", valIndent, k))
+			fmt.Fprintf(sb, "%s%s: {\n", valIndent, k)
 
 			formatMap(sb, nested, depth+1)
 
-			sb.WriteString(fmt.Sprintf("%s}\n", valIndent))
+			fmt.Fprintf(sb, "%s}\n", valIndent)
 		} else {
-			sb.WriteString(fmt.Sprintf("%s%s: %s\n", valIndent, k, formatSimpleValue(v)))
+			fmt.Fprintf(sb, "%s%s: %s\n", valIndent, k, formatSimpleValue(v))
 		}
 	}
 }
