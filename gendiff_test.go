@@ -1,349 +1,242 @@
 package code
 
 import (
+	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/require"
 )
 
-func TestGenDiff(t *testing.T) {
-	tests := []struct {
-		name      string
-		file1     string
-		file2     string
-		expected  string
-		expectErr bool
-	}{
+type diffTestCase struct {
+	name         string
+	file1        string
+	file2        string
+	expectedFile string
+	expectErr    bool
+	format       string
+}
+
+func TestGenDiff_JSON(t *testing.T) {
+	tests := []diffTestCase{
 		{
-			name:  "Flat diff",
-			file1: filepath.Join("testdata", "fixture", "file1.json"),
-			file2: filepath.Join("testdata", "fixture", "file2.json"),
-			expected: `{
-  - follow: false
-    host: hexlet.io
-  - proxy: 123.234.53.22
-  - timeout: 50
-  + timeout: 20
-  + verbose: true
-}`,
+			name:         "Flat diff",
+			file1:        fixturePath("file1.json"),
+			file2:        fixturePath("file2.json"),
+			expectedFile: "flat_diff.txt",
 		},
 		{
-			name:  "Same files",
-			file1: filepath.Join("testdata", "fixture", "same1.json"),
-			file2: filepath.Join("testdata", "fixture", "same2.json"),
-			expected: `{
-    host: hexlet.io
-    timeout: 50
-}`,
+			name:         "Same files",
+			file1:        fixturePath("same1.json"),
+			file2:        fixturePath("same2.json"),
+			expectedFile: "same.txt",
 		},
 		{
-			name:  "Empty files",
-			file1: filepath.Join("testdata", "fixture", "empty1.json"),
-			file2: filepath.Join("testdata", "fixture", "empty2.json"),
-			expected: `{
-}`,
+			name:         "Empty files",
+			file1:        fixturePath("empty1.json"),
+			file2:        fixturePath("empty2.json"),
+			expectedFile: "empty.txt",
 		},
 		{
-			name:  "Empty vs filled",
-			file1: filepath.Join("testdata", "fixture", "empty_vs_filled1.json"),
-			file2: filepath.Join("testdata", "fixture", "empty_vs_filled2.json"),
-			expected: `{
-  + host: hexlet.io
-  + timeout: 50
-}`,
+			name:         "Empty vs filled",
+			file1:        fixturePath("empty_vs_filled1.json"),
+			file2:        fixturePath("empty_vs_filled2.json"),
+			expectedFile: "empty_vs_filled.txt",
 		},
 		{
-			name:  "Only deleted",
-			file1: filepath.Join("testdata", "fixture", "only_deleted.json"),
-			file2: filepath.Join("testdata", "fixture", "only_added.json"),
-			expected: `{
-    host: hexlet.io
-  - proxy: 123.234.53.22
-  - timeout: 50
-}`,
+			name:         "Only deleted",
+			file1:        fixturePath("only_deleted.json"),
+			file2:        fixturePath("only_added.json"),
+			expectedFile: "only_deleted.txt",
 		},
 		{
-			name:  "Only added",
-			file1: filepath.Join("testdata", "fixture", "only_added.json"),
-			file2: filepath.Join("testdata", "fixture", "only_deleted.json"),
-			expected: `{
-    host: hexlet.io
-  + proxy: 123.234.53.22
-  + timeout: 50
-}`,
+			name:         "Only added",
+			file1:        fixturePath("only_added.json"),
+			file2:        fixturePath("only_deleted.json"),
+			expectedFile: "only_added.txt",
 		},
 		{
-			name:  "Different types",
-			file1: filepath.Join("testdata", "fixture", "different_types.json"),
-			file2: filepath.Join("testdata", "fixture", "different_types2.json"),
-			expected: `{
-  - boolean: true
-  + boolean: false
-  - float: 3.14
-  + float: 2.71
-    null: null
-  - number: 42
-  + number: 100
-  - string: value
-  + string: different
-}`,
+			name:         "Different types",
+			file1:        fixturePath("different_types.json"),
+			file2:        fixturePath("different_types2.json"),
+			expectedFile: "different_types.txt",
 		},
 		{
-			name:  "Completely different",
-			file1: filepath.Join("testdata", "fixture", "completely_different1.json"),
-			file2: filepath.Join("testdata", "fixture", "completely_different2.json"),
-			expected: `{
-  - key1: value1
-  - key2: 123
-  + key3: value3
-  + key4: 456
-}`,
+			name:         "Completely different",
+			file1:        fixturePath("completely_different1.json"),
+			file2:        fixturePath("completely_different2.json"),
+			expectedFile: "completely_different.txt",
 		},
+	}
+
+	runDiffTests(t, tests)
+}
+
+func TestGenDiff_YAML(t *testing.T) {
+	tests := []diffTestCase{
+		{
+			name:         "Flat diff",
+			file1:        fixturePath("file1.yml"),
+			file2:        fixturePath("file2.yml"),
+			expectedFile: "flat_diff.txt",
+		},
+		{
+			name:         "Same files",
+			file1:        fixturePath("same1.yml"),
+			file2:        fixturePath("same2.yml"),
+			expectedFile: "same.txt",
+		},
+		{
+			name:         "Empty files",
+			file1:        fixturePath("empty1.yml"),
+			file2:        fixturePath("empty2.yml"),
+			expectedFile: "empty.txt",
+		},
+		{
+			name:         "Empty vs filled",
+			file1:        fixturePath("empty_vs_filled1.yml"),
+			file2:        fixturePath("empty_vs_filled2.yml"),
+			expectedFile: "empty_vs_filled.txt",
+		},
+		{
+			name:         "Only deleted",
+			file1:        fixturePath("only_deleted.yml"),
+			file2:        fixturePath("only_added.yml"),
+			expectedFile: "only_deleted.txt",
+		},
+		{
+			name:         "Only added",
+			file1:        fixturePath("only_added.yml"),
+			file2:        fixturePath("only_deleted.yml"),
+			expectedFile: "only_added.txt",
+		},
+		{
+			name:         "Different types",
+			file1:        fixturePath("different_types.yml"),
+			file2:        fixturePath("different_types2.yml"),
+			expectedFile: "different_types_yaml.txt",
+		},
+		{
+			name:         "Completely different",
+			file1:        fixturePath("completely_different1.yml"),
+			file2:        fixturePath("completely_different2.yml"),
+			expectedFile: "completely_different.txt",
+		},
+	}
+
+	runDiffTests(t, tests)
+}
+
+func TestGenDiff_Mixed(t *testing.T) {
+	tests := []diffTestCase{
+		{
+			name:         "YAML and JSON mixed",
+			file1:        fixturePath("file1.yml"),
+			file2:        fixturePath("file2.json"),
+			expectedFile: "flat_diff.txt",
+		},
+		{
+			name:         "JSON and YAML mixed",
+			file1:        fixturePath("file1.json"),
+			file2:        fixturePath("file2.yml"),
+			expectedFile: "flat_diff.txt",
+		},
+	}
+
+	runDiffTests(t, tests)
+}
+
+func TestGenDiff_Plain(t *testing.T) {
+	tests := []diffTestCase{
+		{
+			name:         "Flat diff plain format",
+			file1:        fixturePath("file1.json"),
+			file2:        fixturePath("file2.json"),
+			expectedFile: "flat_diff_plain.txt",
+			format:       "plain",
+		},
+	}
+
+	runDiffTests(t, tests)
+}
+
+func TestGenDiff_Errors(t *testing.T) {
+	tests := []diffTestCase{
 		{
 			name:      "Nonexistent file",
-			file1:     filepath.Join("testdata", "fixture", "nonexistent.json"),
-			file2:     filepath.Join("testdata", "fixture", "file1.json"),
+			file1:     fixturePath("nonexistent.json"),
+			file2:     fixturePath("file1.json"),
 			expectErr: true,
 		},
 		{
 			name:      "Both nonexistent files",
-			file1:     filepath.Join("testdata", "fixture", "nonexistent1.json"),
-			file2:     filepath.Join("testdata", "fixture", "nonexistent2.json"),
+			file1:     fixturePath("nonexistent1.json"),
+			file2:     fixturePath("nonexistent2.json"),
 			expectErr: true,
 		},
 		{
 			name:      "Unsupported format",
-			file1:     filepath.Join("testdata", "fixture", "file1.txt"),
-			file2:     filepath.Join("testdata", "fixture", "file2.json"),
+			file1:     fixturePath("file1.txt"),
+			file2:     fixturePath("file2.json"),
 			expectErr: true,
 		},
-		// YAML tests
+	}
+
+	runDiffTests(t, tests)
+}
+
+func TestGenDiff_Nested(t *testing.T) {
+	tests := []diffTestCase{
 		{
-			name:  "YAML flat diff",
-			file1: filepath.Join("testdata", "fixture", "file1.yml"),
-			file2: filepath.Join("testdata", "fixture", "file2.yml"),
-			expected: `{
-  - follow: false
-    host: hexlet.io
-  - proxy: 123.234.53.22
-  - timeout: 50
-  + timeout: 20
-  + verbose: true
-}`,
+			name:         "Nested JSON structures",
+			file1:        fixturePath("nested1.json"),
+			file2:        fixturePath("nested2.json"),
+			expectedFile: "nested.txt",
 		},
 		{
-			name:  "YAML same files",
-			file1: filepath.Join("testdata", "fixture", "same1.yml"),
-			file2: filepath.Join("testdata", "fixture", "same2.yml"),
-			expected: `{
-    host: hexlet.io
-    timeout: 50
-}`,
-		},
-		{
-			name:  "YAML empty files",
-			file1: filepath.Join("testdata", "fixture", "empty1.yml"),
-			file2: filepath.Join("testdata", "fixture", "empty2.yml"),
-			expected: `{
-}`,
-		},
-		{
-			name:  "YAML empty vs filled",
-			file1: filepath.Join("testdata", "fixture", "empty_vs_filled1.yml"),
-			file2: filepath.Join("testdata", "fixture", "empty_vs_filled2.yml"),
-			expected: `{
-  + host: hexlet.io
-  + timeout: 50
-}`,
-		},
-		{
-			name:  "YAML only deleted",
-			file1: filepath.Join("testdata", "fixture", "only_deleted.yml"),
-			file2: filepath.Join("testdata", "fixture", "only_added.yml"),
-			expected: `{
-    host: hexlet.io
-  - proxy: 123.234.53.22
-  - timeout: 50
-}`,
-		},
-		{
-			name:  "YAML only added",
-			file1: filepath.Join("testdata", "fixture", "only_added.yml"),
-			file2: filepath.Join("testdata", "fixture", "only_deleted.yml"),
-			expected: `{
-    host: hexlet.io
-  + proxy: 123.234.53.22
-  + timeout: 50
-}`,
-		},
-		{
-			name:  "YAML different types",
-			file1: filepath.Join("testdata", "fixture", "different_types.yml"),
-			file2: filepath.Join("testdata", "fixture", "different_types2.yml"),
-			expected: `{
-  - boolean: true
-  + boolean: false
-  - float: 3.14
-  + float: 2.71
-  - number: 42
-  + number: 100
-  - string: value
-  + string: different
-}`,
-		},
-		{
-			name:  "YAML completely different",
-			file1: filepath.Join("testdata", "fixture", "completely_different1.yml"),
-			file2: filepath.Join("testdata", "fixture", "completely_different2.yml"),
-			expected: `{
-  - key1: value1
-  - key2: 123
-  + key3: value3
-  + key4: 456
-}`,
-		},
-		{
-			name:  "YAML and JSON mixed",
-			file1: filepath.Join("testdata", "fixture", "file1.yml"),
-			file2: filepath.Join("testdata", "fixture", "file2.json"),
-			expected: `{
-  - follow: false
-    host: hexlet.io
-  - proxy: 123.234.53.22
-  - timeout: 50
-  + timeout: 20
-  + verbose: true
-}`,
-		},
-		{
-			name:  "JSON and YAML mixed",
-			file1: filepath.Join("testdata", "fixture", "file1.json"),
-			file2: filepath.Join("testdata", "fixture", "file2.yml"),
-			expected: `{
-  - follow: false
-    host: hexlet.io
-  - proxy: 123.234.53.22
-  - timeout: 50
-  + timeout: 20
-  + verbose: true
-}`,
-		},
-		// Nested structures tests
-		{
-			name:  "Nested JSON structures",
-			file1: filepath.Join("testdata", "fixture", "nested1.json"),
-			file2: filepath.Join("testdata", "fixture", "nested2.json"),
-			expected: `{
-    common: {
-      + follow: false
-        setting1: Value 1
-      - setting2: 200
-      - setting3: true
-      + setting3: null
-      + setting4: blah blah
-      + setting5: {
-            key5: value5
-        }
-        setting6: {
-            doge: {
-              - wow: 
-              + wow: so much
-            }
-            key: value
-          + ops: vops
-        }
-    }
-    group1: {
-      - baz: bas
-      + baz: bars
-        foo: bar
-      - nest: {
-            key: value
-        }
-      + nest: str
-    }
-  - group2: {
-        abc: 12345
-        deep: {
-            id: 45
-        }
-    }
-  + group3: {
-        deep: {
-            id: {
-                number: 45
-            }
-        }
-        fee: 100500
-    }
-}`,
-		},
-		{
-			name:  "Nested YAML structures",
-			file1: filepath.Join("testdata", "fixture", "nested1.yml"),
-			file2: filepath.Join("testdata", "fixture", "nested2.yml"),
-			expected: `{
-    common: {
-      + follow: false
-        setting1: Value 1
-      - setting2: 200
-      - setting3: true
-      + setting3: null
-      + setting4: blah blah
-      + setting5: {
-            key5: value5
-        }
-        setting6: {
-            doge: {
-              - wow: 
-              + wow: so much
-            }
-            key: value
-          + ops: vops
-        }
-    }
-    group1: {
-      - baz: bas
-      + baz: bars
-        foo: bar
-      - nest: {
-            key: value
-        }
-      + nest: str
-    }
-  - group2: {
-        abc: 12345
-        deep: {
-            id: 45
-        }
-    }
-  + group3: {
-        deep: {
-            id: {
-                number: 45
-            }
-        }
-        fee: 100500
-    }
-}`,
+			name:         "Nested YAML structures",
+			file1:        fixturePath("nested1.yml"),
+			file2:        fixturePath("nested2.yml"),
+			expectedFile: "nested.txt",
 		},
 	}
+
+	runDiffTests(t, tests)
+}
+
+func runDiffTests(t *testing.T, tests []diffTestCase) {
+	t.Helper()
 
 	for _, tt := range tests {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
-			t.Parallel()
-			file1 := filepath.Join(tt.file1)
-			file2 := filepath.Join(tt.file2)
-
-			result, err := GenDiff(file1, file2, "stylish")
+			result, err := GenDiff(tt.file1, tt.file2, tt.format)
 			if tt.expectErr {
 				require.Error(t, err)
-			} else {
-				require.NoError(t, err)
-				require.Equal(t, tt.expected, result)
+				return
 			}
+
+			require.NoError(t, err)
+			require.NotEmpty(t, tt.expectedFile)
+
+			expected := readExpected(t, tt.expectedFile)
+			require.Equal(t, expected, result)
 		})
 	}
+}
+
+func readExpected(t *testing.T, filename string) string {
+	t.Helper()
+
+	path := filepath.Join("testdata", "expected", filename)
+	content, err := os.ReadFile(path)
+	require.NoError(t, err)
+
+	normalized := strings.ReplaceAll(string(content), "\r\n", "\n")
+	return strings.TrimRight(normalized, "\n")
+}
+
+func fixturePath(segments ...string) string {
+	return filepath.Join(append([]string{"testdata", "fixture"}, segments...)...)
 }

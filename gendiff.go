@@ -28,8 +28,12 @@ func GenDiff(path1, path2, format string) (string, error) {
 		return "", err
 	}
 
+	fmter, err := formatter.GetFormatter(format)
+	if err != nil {
+		return "", err
+	}
+
 	nodes := getNodes(data1, data2)
-	fmter := formatter.GetFormatter(format)
 	return fmter.Format(nodes), nil
 }
 
