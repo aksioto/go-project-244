@@ -10,13 +10,21 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+type registryParseFileCase struct {
+	name         string
+	filePath     string
+	setupMock    func()
+	expectResult map[string]interface{}
+	expectErr    bool
+}
+
 func TestRegistry_ParseFile(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
 	mockParser := NewMockParser(ctrl)
-	reg := NewRegistry()
-	reg.Register(mockParser, ".mock")
+	reg := NewFileParser()
+	reg.Add(mockParser, ".mock")
 
 	tmpDir := t.TempDir()
 	content := []byte("dummy content")
@@ -27,13 +35,7 @@ func TestRegistry_ParseFile(t *testing.T) {
 	tmpFileUnsupported := filepath.Join(tmpDir, "file.mock.txt")
 	require.NoError(t, os.WriteFile(tmpFileUnsupported, content, 0644))
 
-	tests := []struct {
-		name         string
-		filePath     string
-		setupMock    func()
-		expectResult map[string]interface{}
-		expectErr    bool
-	}{
+	tests := []registryParseFileCase{
 		{
 			name:     "success",
 			filePath: tmpFile,
@@ -64,16 +66,17 @@ func TestRegistry_ParseFile(t *testing.T) {
 		},
 		{
 			name:      "invalid path for Abs",
-			filePath:  string([]byte{0}), // недопустимый путь
+			filePath:  string([]byte{0}), // invalid path
 			setupMock: func() {},
 			expectErr: true,
 		},
 	}
 
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			tt.setupMock()
-			res, err := reg.ParseFile(tt.filePath)
+			res, err := reg.Parse(tt.filePath)
 			if tt.expectErr {
 				require.Error(t, err)
 				require.Nil(t, res)

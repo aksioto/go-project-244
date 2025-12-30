@@ -3,31 +3,24 @@ package formatter
 import (
 	"code/internal/diff"
 	"fmt"
-	"sort"
 	"strings"
 )
 
-// Plain форматирует дерево различий в плоском формате
-func Plain(nodes []*diff.Node) string {
+type PlainFormatter struct{}
+
+func (f *PlainFormatter) Format(nodes []*diff.Node) (string, error) {
 	var lines []string
-	collectPlainLines(nodes, "", &lines)
+	f.collectPlainLines(nodes, "", &lines)
 
 	if len(lines) == 0 {
-		return ""
+		return "", nil
 	}
 
-	return strings.Join(lines, "\n")
+	return strings.Join(lines, "\n"), nil
 }
 
-func collectPlainLines(nodes []*diff.Node, parentPath string, lines *[]string) {
-	// Сортируем узлы для стабильного вывода
-	sortedNodes := make([]*diff.Node, len(nodes))
-	copy(sortedNodes, nodes)
-	sort.Slice(sortedNodes, func(i, j int) bool {
-		return sortedNodes[i].Key < sortedNodes[j].Key
-	})
-
-	for _, node := range sortedNodes {
+func (f *PlainFormatter) collectPlainLines(nodes []*diff.Node, parentPath string, lines *[]string) {
+	for _, node := range nodes {
 		currentPath := buildPath(parentPath, node.Key)
 
 		switch node.Type {
@@ -56,12 +49,12 @@ func collectPlainLines(nodes []*diff.Node, parentPath string, lines *[]string) {
 			*lines = append(*lines, line)
 
 		case diff.NodeTypeUnchanged:
-			// Неизменённые свойства не выводятся в plain формате
+			// Unchanged properties are not rendered in the plain format
 			continue
 
 		case diff.NodeTypeNested:
-			// Рекурсивно обрабатываем вложенные узлы
-			collectPlainLines(node.Children, currentPath, lines)
+			// Process nested nodes recursively
+			f.collectPlainLines(node.Children, currentPath, lines)
 		}
 	}
 }
@@ -78,14 +71,19 @@ func formatPlainValue(v interface{}) string {
 		return "null"
 	}
 
-	// Если значение - это map (объект), выводим [complex value]
+	// If the value is a map, output [complex value]
 	if _, ok := v.(map[string]interface{}); ok {
+		return "[complex value]"
+	}
+
+	// Arrays and slices are also considered complex values
+	if _, ok := v.([]interface{}); ok {
 		return "[complex value]"
 	}
 
 	switch val := v.(type) {
 	case string:
-		// Строки оборачиваем в одинарные кавычки
+		// Wrap strings in single quotes
 		return fmt.Sprintf("'%s'", val)
 	case bool:
 		if val {

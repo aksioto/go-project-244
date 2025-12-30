@@ -4,9 +4,9 @@ import (
 	"code"
 	"context"
 	"fmt"
-	"github.com/urfave/cli/v3"
-	"log"
 	"os"
+
+	"github.com/urfave/cli/v3"
 )
 
 func main() {
@@ -43,6 +43,7 @@ func main() {
 	}
 
 	if err := cmd.Run(context.Background(), os.Args); err != nil {
-		log.Fatal(err)
+		fmt.Fprintln(os.Stderr, err.Error())
+		os.Exit(1)
 	}
 }

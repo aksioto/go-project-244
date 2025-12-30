@@ -10,12 +10,12 @@ const (
 	NodeTypeNested    NodeType = "nested"
 )
 
-// Node представляет узел в дереве различий
+// Node represents a node in the diff tree.
 type Node struct {
-	Type     NodeType
-	Key      string
-	Value    interface{}
-	OldValue interface{}
-	NewValue interface{}
-	Children []*Node
+	Type     NodeType    `json:"type"`
+	Key      string      `json:"key"`
+	Value    interface{} `json:"value,omitempty"`
+	OldValue interface{} `json:"oldValue,omitempty"`
+	NewValue interface{} `json:"newValue,omitempty"`
+	Children []*Node     `json:"children,omitempty"`
 }

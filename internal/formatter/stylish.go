@@ -2,27 +2,28 @@ package formatter
 
 import (
 	"code/internal/diff"
+	"code/internal/utils"
 	"fmt"
-	"sort"
 	"strings"
 )
 
 const indentSize = 4
 
-// Stylish форматирует Diff в стиле stylish
-func Stylish(nodes []*diff.Node) string {
+type StylishFormatter struct{}
+
+func (f *StylishFormatter) Format(nodes []*diff.Node) (string, error) {
 	if len(nodes) == 0 {
-		return "{\n}"
+		return "{\n}", nil
 	}
 
 	var sb strings.Builder
 	sb.WriteString("{\n")
-	formatNodes(&sb, nodes, 1)
+	f.formatNodes(&sb, nodes, 1)
 	sb.WriteString("}")
-	return sb.String()
+	return sb.String(), nil
 }
 
-func formatNodes(sb *strings.Builder, nodes []*diff.Node, depth int) {
+func (f *StylishFormatter) formatNodes(sb *strings.Builder, nodes []*diff.Node, depth int) {
 	for _, node := range nodes {
 		switch node.Type {
 		case diff.NodeTypeAdded:
@@ -43,7 +44,7 @@ func formatNodes(sb *strings.Builder, nodes []*diff.Node, depth int) {
 
 			fmt.Fprintf(sb, "%s%s: {\n", lineIndent, node.Key)
 
-			formatNodes(sb, node.Children, depth+1)
+			f.formatNodes(sb, node.Children, depth+1)
 
 			fmt.Fprintf(sb, "%s}\n", makeIndent(depth, " "))
 		}
@@ -67,12 +68,7 @@ func formatValue(sb *strings.Builder, depth int, marker string, key string, valu
 }
 
 func formatMap(sb *strings.Builder, m map[string]interface{}, depth int) {
-	keys := make([]string, 0, len(m))
-	for k := range m {
-		keys = append(keys, k)
-	}
-	sort.Strings(keys)
-
+	keys := utils.SortedKeys(m)
 	valIndent := makeIndentForMap(depth)
 
 	for _, k := range keys {

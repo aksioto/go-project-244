@@ -1,11 +1,13 @@
 package code
 
 import (
+	"code/internal/parser"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
 
+	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"
 )
 
@@ -156,6 +158,34 @@ func TestGenDiff_Plain(t *testing.T) {
 			expectedFile: "flat_diff_plain.txt",
 			format:       "plain",
 		},
+		{
+			name:         "Nested diff plain format",
+			file1:        fixturePath("nested1.json"),
+			file2:        fixturePath("nested2.json"),
+			expectedFile: "nested_plain.txt",
+			format:       "plain",
+		},
+	}
+
+	runDiffTests(t, tests)
+}
+
+func TestGenDiff_JSONFormat(t *testing.T) {
+	tests := []diffTestCase{
+		{
+			name:         "Flat diff json format",
+			file1:        fixturePath("file1.json"),
+			file2:        fixturePath("file2.json"),
+			expectedFile: "flat_diff_json.txt",
+			format:       "json",
+		},
+		{
+			name:         "Nested diff json format",
+			file1:        fixturePath("nested1.json"),
+			file2:        fixturePath("nested2.json"),
+			expectedFile: "nested_json.txt",
+			format:       "json",
+		},
 	}
 
 	runDiffTests(t, tests)
@@ -164,9 +194,15 @@ func TestGenDiff_Plain(t *testing.T) {
 func TestGenDiff_Errors(t *testing.T) {
 	tests := []diffTestCase{
 		{
-			name:      "Nonexistent file",
+			name:      "Nonexistent file1",
 			file1:     fixturePath("nonexistent.json"),
 			file2:     fixturePath("file1.json"),
+			expectErr: true,
+		},
+		{
+			name:      "Nonexistent file2",
+			file1:     fixturePath("file1.json"),
+			file2:     fixturePath("nonexistent.json"),
 			expectErr: true,
 		},
 		{
@@ -181,9 +217,26 @@ func TestGenDiff_Errors(t *testing.T) {
 			file2:     fixturePath("file2.json"),
 			expectErr: true,
 		},
+		{
+			name:      "Unknown output format",
+			file1:     fixturePath("file1.json"),
+			file2:     fixturePath("file2.json"),
+			format:    "xml",
+			expectErr: true,
+		},
 	}
 
 	runDiffTests(t, tests)
+}
+
+func TestGenDiff_EmptyPaths(t *testing.T) {
+	_, err := GenDiff("", "file.json", "")
+	require.Error(t, err)
+	require.ErrorIs(t, err, ErrEmptyPath)
+
+	_, err = GenDiff("file.json", "", "")
+	require.Error(t, err)
+	require.ErrorIs(t, err, ErrEmptyPath)
 }
 
 func TestGenDiff_Nested(t *testing.T) {
@@ -203,6 +256,38 @@ func TestGenDiff_Nested(t *testing.T) {
 	}
 
 	runDiffTests(t, tests)
+}
+
+func TestDiffer_getNodeReturnsNil(t *testing.T) {
+	d := NewDiffer()
+
+	node := d.getNode("missing", nil, false, nil, false)
+
+	require.Nil(t, node)
+}
+
+func TestGenDiff_FormatError(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	tempDir := t.TempDir()
+	path := filepath.Join(tempDir, "data.mock")
+	require.NoError(t, os.WriteFile(path, []byte("dummy"), 0o644))
+
+	mockParser := parser.NewMockParser(ctrl)
+	mockParser.EXPECT().
+		Parse(gomock.Any()).
+		Return(map[string]interface{}{"chan": make(chan struct{})}, nil).
+		Times(2)
+
+	fp := parser.NewFileParser()
+	fp.Add(mockParser, ".mock")
+
+	differ := NewDiffer(WithFileParser(fp))
+
+	_, err := differ.GetDiff(path, path, "json")
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "format diff")
 }
 
 func runDiffTests(t *testing.T, tests []diffTestCase) {

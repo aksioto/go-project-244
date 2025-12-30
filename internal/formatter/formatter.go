@@ -10,21 +10,23 @@ import (
 const (
 	FormatStylish = "stylish"
 	FormatPlain   = "plain"
+	FormatJSON    = "json"
 )
 
 var SupportedFormats = []string{
 	FormatStylish,
 	FormatPlain,
+	FormatJSON,
 }
 
 var ErrUnknownFormat = errors.New("unknown format")
 
-// Formatter интерфейс для форматирования различий
+// Formatter formats a diff tree into a string representation.
 type Formatter interface {
-	Format(nodes []*diff.Node) string
+	Format(nodes []*diff.Node) (string, error)
 }
 
-// GetFormatter возвращает форматер по имени
+// GetFormatter returns a formatter implementation by its name.
 func GetFormatter(name string) (Formatter, error) {
 	if name == "" {
 		return &StylishFormatter{}, nil
@@ -35,20 +37,9 @@ func GetFormatter(name string) (Formatter, error) {
 		return &StylishFormatter{}, nil
 	case FormatPlain:
 		return &PlainFormatter{}, nil
+	case FormatJSON:
+		return &JSONFormatter{}, nil
 	default:
 		return nil, fmt.Errorf("%w: %s (allowed: %s)", ErrUnknownFormat, name, strings.Join(SupportedFormats, ", "))
 	}
-}
-
-// StylishFormatter реализует форматирование в стиле stylish
-type StylishFormatter struct{}
-
-func (f *StylishFormatter) Format(nodes []*diff.Node) string {
-	return Stylish(nodes)
-}
-
-type PlainFormatter struct{}
-
-func (f *PlainFormatter) Format(nodes []*diff.Node) string {
-	return Plain(nodes)
 }
